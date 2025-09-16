@@ -729,11 +729,17 @@ require('lazy').setup({
         vtsls = {
           settings = {
             vtsls = {
+              typescript = {
+                tsserver = {
+                  -- see https://github.com/yioneko/vtsls/pull/206
+                  nodePath = '~/.config/nvim/node-lite',
+                  maxTsServerMemory = 12288, -- 12GB
+                },
+              },
               tsserver = {
                 globalPlugins = {
                   vue_plugin,
                 },
-                maxTsServerMemory = 8192, -- 8GB
               },
             },
           },

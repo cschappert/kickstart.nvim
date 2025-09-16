@@ -1,0 +1,5 @@
+#!/bin/bash
+
+VSCODE_PATH="/usr/share/code"
+export ELECTRON_RUN_AS_NODE=1
+exec "$VSCODE_PATH"/code "$@"
