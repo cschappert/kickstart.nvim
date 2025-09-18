@@ -1,25 +1,19 @@
 --[[
+External Requirements:
 
-=====================================================================
-==================== READ THIS BEFORE CONTINUING ====================
-=====================================================================
-========                                    .-----.          ========
-========         .----------------------.   | === |          ========
-========         |.-""""""""""""""""""-.|   |-----|          ========
-========         ||                    ||   | === |          ========
-========         ||   KICKSTART.NVIM   ||   |-----|          ========
-========         ||                    ||   | === |          ========
-========         ||                    ||   |-----|          ========
-========         ||:Tutor              ||   |:::::|          ========
-========         |'-..................-'|   |____o|          ========
-========         `"")----------------(""`   ___________      ========
-========        /::::::::::|  |::::::::::\  \ no mouse \     ========
-========       /:::========|  |==hjkl==:::\  \ required \    ========
-========      '""""""""""""'  '""""""""""""'  '""""""""""'   ========
-========                                                     ========
-=====================================================================
-=====================================================================
+- Basic utils: git, make, unzip, C Compiler (gcc)
+- Additional utils: ripgrep, fd-find (install with package manager)
+- Clipboard tool (xclip/xsel/win32yank or other depending on the platform)
+- A Nerd Font: optional, provides various icons
+  - if you have it: set vim.g.have_nerd_font in init.lua to true
+- Emoji fonts (Ubuntu only, and only if you want emoji!) sudo apt install fonts-noto-color-emoji
+- Language Setup:
+  - If you want to write Typescript, you need npm
+  - If you want to write Golang, you will need go
+  - etc.
+--]]
 
+--[[
 What is Kickstart?
 
   Kickstart.nvim is *not* a distribution.
@@ -225,6 +219,16 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   end,
 })
 
+-- Disable auto-commenting on new lines
+-- See: https://github.com/LazyVim/LazyVim/discussions/3018
+vim.api.nvim_create_autocmd('FileType', {
+  desc = 'Disable auto-commenting on new lines',
+  pattern = '*',
+  callback = function()
+    vim.opt_local.formatoptions:remove { 'c', 'r', 'o' }
+  end,
+})
+
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
 local lazypath = vim.fn.stdpath 'data' .. '/lazy/lazy.nvim'
@@ -292,13 +296,16 @@ require('lazy').setup({
 
   { -- github copilot
     'github/copilot.vim',
-    --    config = function()
-    --      vim.keymap.set('i', '<C-J>', 'copilot#Accept("\\<CR>")', {
-    --        expr = true,
-    --        replace_keycodes = false,
-    --      })
-    --      vim.g.copilot_no_tab_map = true
-    --    end,
+    config = function()
+      -- Use <C-J> to accept copilot suggestions
+      -- See `:help Copilot` for more info.
+      vim.keymap.set('i', '<C-J>', 'copilot#Accept("\\<CR>")', {
+        expr = true,
+        replace_keycodes = false,
+      })
+      -- Disable the default <Tab> mappings.
+      vim.g.copilot_no_tab_map = true
+    end,
   },
 
   -- NOTE: Plugins can also be configured to run Lua code when they are loaded.
@@ -321,12 +328,16 @@ require('lazy').setup({
     opts = {
       -- delay between pressing a key and opening which-key (milliseconds)
       -- this setting is independent of vim.o.timeoutlen
-      delay = 0,
+
+      -- avoid "flashing" the which-key dialog when typing quickly by increasing the delay
+      delay = 250,
       icons = {
         -- set icon mappings to true if you have a Nerd Font
         mappings = vim.g.have_nerd_font,
         -- If you are using a Nerd Font: set icons.keys to an empty table which will use the
         -- default which-key.nvim defined Nerd Font icons, otherwise define a string table
+
+        -- this is just a funny if, else statement
         keys = vim.g.have_nerd_font and {} or {
           Up = '<Up> ',
           Down = '<Down> ',
@@ -680,7 +691,6 @@ require('lazy').setup({
 
       -- Set a few variables for the typescript/vue language servers
       local vue_language_server_path = vim.fn.stdpath 'data' .. '/mason/packages/vue-language-server/node_modules/@vue/language-server'
-      local tsserver_filetypes = { 'typescript', 'javascript', 'javascriptreact', 'typescriptreact', 'vue' }
       local vue_plugin = {
         name = '@vue/typescript-plugin',
         location = vue_language_server_path,
@@ -699,7 +709,7 @@ require('lazy').setup({
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
         -- clangd = {},
-        gopls = {},
+        -- gopls = {},
         -- pyright = {},
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
@@ -726,11 +736,19 @@ require('lazy').setup({
           },
         },
 
+        gopls = {},
+
+        pyright = {},
+
+        -- vue typescript language server. Works both as a TypeScript language server
+        -- and as a drop-in to handle the Vue <script> blocks.
+        -- Note: Currently crashes when opening large projects. Disable if you experience this.
         vtsls = {
           settings = {
             vtsls = {
               typescript = {
                 tsserver = {
+                  -- Attempt to get better response by using an optimized node runtime
                   -- see https://github.com/yioneko/vtsls/pull/206
                   nodePath = '~/.config/nvim/node-lite',
                   maxTsServerMemory = 12288, -- 12GB
@@ -768,36 +786,44 @@ require('lazy').setup({
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
-      -- Config and enable using the new API
-      vim.lsp.config('vtsls', servers['vtsls'])
-      vim.lsp.config('lua_ls', servers['lua_ls'])
-      vim.lsp.config('gopls', servers['gopls'])
-      vim.lsp.config('vue_ls', servers['vue_ls'])
+      -- Config and enable using the new API (I haven't figured out how to handle
+      -- capabilities overrides yet so commenting out for now)
+      -- vim.lsp.config('vtsls', servers['vtsls'])
+      -- vim.lsp.config('lua_ls', servers['lua_ls'])
+      -- vim.lsp.config('gopls', servers['gopls'])
+      -- vim.lsp.config('vue_ls', servers['vue_ls'])
 
-      vim.lsp.enable { 'vtsls', 'vue_ls', 'lua_ls', 'gopls' }
+      -- vim.lsp.enable { 'vtsls', 'vue_ls', 'lua_ls', 'gopls' }
 
-      -- I think the below is the old way of doing things, leaving
-      -- it here for reference until I'm sure the above works well.
+      -- I think the below is the old way of doing things.
+      -- Will eventually migrate to using vim.lsp.config.
 
-      -- require('mason-lspconfig').setup {
-      --   ensure_installed = {}, -- explicitly set to an empty table (Kickstart populates installs via mason-tool-installer)
-      --   automatic_installation = false,
-      --   handlers = {
-      --     -- Generic handler for all servers
-      --     function(server_name)
-      --       local server = servers[server_name] or {}
-      --       -- This handles overriding only values explicitly passed
-      --       -- by the server configuration above. Useful when disabling
-      --       -- certain features of an LSP (for example, turning off formatting for ts_ls)
-      --       server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
-      --       require('lspconfig')[server_name].setup(server)
-      --     end,
-      --   },
-      -- }
+      require('mason-lspconfig').setup {
+        -- explicitly set to an empty table (Kickstart populates installs via mason-tool-installer)
+        -- TODO: Why doesn't kickstart just use mason-lspconfig to install the servers?
+        ensure_installed = {},
+        automatic_installation = false,
+        handlers = {
+          -- Generic handler for all servers
+          function(server_name)
+            local server = servers[server_name] or {}
+            -- This handles overriding only values explicitly passed
+            -- by the server configuration above. Useful when disabling
+            -- certain features of an LSP (for example, turning off formatting for ts_ls)
+            server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
+            -- again, going forward this could probably be replaced with:
+            -- vim.lsp.config(server_name, server)
+            -- vim.lsp.enable(server_name)
+            require('lspconfig')[server_name].setup(server)
+          end,
+        },
+      }
     end,
   },
 
   { -- Autoformat
+    -- TODO: I'm not sure if this is even running. Format on save does seem to work for languages
+    -- that have as LSP installed.
     'stevearc/conform.nvim',
     event = { 'BufWritePre' },
     cmd = { 'ConformInfo' },
@@ -885,8 +911,6 @@ require('lazy').setup({
         --
         -- For an understanding of why the 'default' preset is recommended,
         -- you will need to read `:help ins-completion`
-        --
-        -- No, but seriously. Please read `:help ins-completion`, it is really good!
         --
         -- All presets have the following mappings:
         -- <tab>/<s-tab>: move to right/left of your snippet expansion
@@ -1035,8 +1059,8 @@ require('lazy').setup({
   --  Uncomment any of the lines below to enable them (you will need to restart nvim).
   --
   -- require 'kickstart.plugins.debug',
-  -- require 'kickstart.plugins.indent_line',
-  -- require 'kickstart.plugins.lint',
+  require 'kickstart.plugins.indent_line',
+  require 'kickstart.plugins.lint',
   -- require 'kickstart.plugins.autopairs',
   -- require 'kickstart.plugins.neo-tree',
   -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
